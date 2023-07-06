@@ -9,14 +9,22 @@ class Metadata:
     max_runs: int
 
 @dataclass
-class DictEntry:
-    """
-    Each individual item in a dictionary
-    """
+class WordEntry:
+    """ Each word """
     simplified: str
     traditional: str
+
+@dataclass
+class Interpretation:
+    """ Each possible interpretation of a word """
     pronunciation: str
     meanings: list[str]
+
+@dataclass
+class DictEntry:
+    """ Each individual listing in a dictionary (including the word) """
+    word: WordEntry
+    interpretations: list[Interpretation]
     metadata: Optional[Metadata]
 
 class Dictionary:
@@ -30,7 +38,7 @@ class Dictionary:
             self.add_metadata()
 
     @staticmethod
-    def parse_into_entry(line: str) -> DictEntry:
+    def parse_line(line: str) -> tuple[WordEntry, DictEntry]:
         ## Format of lines is
         # Traditional Simplified [pin1 yin1] /gloss; gloss; .../gloss; gloss; .../
 
@@ -47,19 +55,22 @@ class Dictionary:
         # (trailing / at the end)
         meanings = line.split("/")[:-1]
 
-        return DictEntry(simplified, traditional, pronunciation_cleaned, meanings, None)
+        return (WordEntry(simplified, traditional), Interpretation(pronunciation_cleaned, meanings))
 
     def initialise_dict(self, filtered_dict_contents: list[str]):
         for line in filtered_dict_contents:
-            entry = Dictionary.parse_into_entry(line)
-            self._dict[entry.simplified] = entry
+            word_entry, interpretation = Dictionary.parse_line(line)
+            if (dict_entry := self._dict[word_entry.simplified]):
+                dict_entry.interpretations.append(interpretation)
+            else:
+                self._dict[word_entry.simplified] = DictEntry(word_entry, [interpretation], None)
     
     def add_metadata(self):
         for key, value in self._dict.items():
-            if len(key) > 0 and (first_char := value.simplified[0]) in self._dict:
+            if len(key) > 0 and (first_char := value.word.simplified[0]) in self._dict:
                 first_char_entry = self.get_dictionary_word(first_char)
                 first_char_entry.metadata = Metadata(max(
-                    first_char_entry.metadata.max_runs if first_char_entry.metadata else 1, len(value.simplified)
+                    first_char_entry.metadata.max_runs if first_char_entry.metadata else 1, len(value.word.simplified)
                 ))
     
     def get_contents(self) -> defaultdict[str, Optional[DictEntry]]:
@@ -86,7 +97,7 @@ class Dictionary:
                         j += 1
 
                     entries.append(best_candidate)
-                    i += len(best_candidate.simplified)
+                    i += len(best_candidate.word.simplified)
                 else:
                     entries.append(curr_word)
                     i += 1
@@ -110,4 +121,4 @@ if __name__ == "__main__":
         ls = dict.define_sentence(sentence)
         print(sentence)
         for l in ls:
-            print(l.simplified, "(", l.pronunciation,")", ": ", "; ".join(l.meanings), sep="")
+            print(l.word.simplified, "(", "; ".join([str(x) for x in l.interpretations]),")", ": ", sep="")
