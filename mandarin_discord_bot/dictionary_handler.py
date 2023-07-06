@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from collections import defaultdict
 from typing import Optional
 
-DICTIONARY_FILE_PATH = "cedict_ts.u8"
+DICTIONARY_FILE_PATH = "data/cedict_ts.u8"
 
 
 @dataclass
@@ -13,7 +13,6 @@ class Metadata:
 @dataclass
 class WordEntry:
     """Each word"""
-
     simplified: str
     traditional: str
 
@@ -21,7 +20,6 @@ class WordEntry:
 @dataclass
 class Interpretation:
     """Each possible interpretation of a word"""
-
     pronunciation: str
     meanings: list[str]
 
@@ -29,7 +27,6 @@ class Interpretation:
 @dataclass
 class DictEntry:
     """Each individual listing in a dictionary (including the word)"""
-
     word: WordEntry
     interpretations: list[Interpretation]
     metadata: Optional[Metadata]
